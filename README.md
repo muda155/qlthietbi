@@ -254,14 +254,42 @@ media/
 │       └── unit_*.png
 ```
 
+## PWA Features Implemented
+
+### 1. **manifest.json** ✅
+- Vietnamese app name: "Sổ Kỹ Thuật Số" (Technical Log Book)
+- Short name: "SKTS"
+- Dark theme (background: #0f172a, theme-color: #3b82f6)
+- Standalone display mode
+- Maskable and standard icons (SVG-based)
+- Shortcuts for quick access:
+  - Quét mã (QR Scanner)
+  - Lịch sử (History)
+- Responsive screenshots
+
+### 2. **Service Worker (serviceworker.js)** ✅
+- **Install**: Caches core assets (/, manifest.json, offline page)
+- **Fetch Strategy**: Network-first with cache fallback
+  - Attempts to fetch from network
+  - Returns cached version if offline
+  - Returns offline page for HTML requests when no cache exists
+- **Cache Updates**: Automatic on successful responses
+- **Background Sync**: Ready for syncing pending logs when online
+- **Message Handling**: Supports update notifications
+
+### 3. **Service Worker Registration** ✅
+- Added to `base.html` with deferred loading
+- Automatically registers on page load
+- Console logging for debugging
+
 ## Next Steps
-1. Create `manifest.json` for PWA support
-2. Create Service Worker for offline functionality
-3. Add local storage handling for offline log submission
-4. Create offline.html page
-5. Add background sync for queued logs
-6. Test on mobile devices and ship environment
-7. Add print stylesheet for QR code printing
+1. Create offline.html page for offline experience
+2. Add local storage handling for offline log submission
+3. Implement background sync for queued logs
+4. Add offline data persistence to log_entry.html
+5. Test on mobile devices and ship environment
+6. Add print stylesheet for QR code printing
+7. Monitor service worker updates and cache invalidation
 
 ## Vietnamese Terminology Used
 - **Bảng chỉ huy** = Dashboard

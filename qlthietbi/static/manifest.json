@@ -1,0 +1,63 @@
+{
+  "name": "Sổ Kỹ Thuật Số",
+  "short_name": "SKTS",
+  "description": "Ứng dụng quản lý nhật ký vận hành thiết bị kỹ thuật trên tàu",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230f172a' width='192' height='192'/><rect fill='%233b82f6' x='48' y='48' width='96' height='96' rx='8'/><text x='96' y='120' font-size='60' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>SKTS</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%230f172a' width='512' height='512'/><rect fill='%233b82f6' x='128' y='128' width='256' height='256' rx='20'/><text x='256' y='340' font-size='160' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>SKTS</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230f172a' width='540' height='720'/><rect fill='%231e293b' x='20' y='60' width='500' height='600' rx='10'/></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Quét mã",
+      "short_name": "Quét",
+      "description": "Quét mã QR thiết bị",
+      "url": "/scan/",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%233b82f6' width='96' height='96' rx='8'/><text x='48' y='58' font-size='32' fill='white' text-anchor='middle' dominant-baseline='middle'>QR</text></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Lịch sử",
+      "short_name": "Lịch sử",
+      "description": "Xem lịch sử vận hành",
+      "url": "/history/",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%2310b981' width='96' height='96' rx='8'/><text x='48' y='58' font-size='28' fill='white' text-anchor='middle' dominant-baseline='middle'>📋</text></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}
