@@ -1,4 +1,4 @@
-// Service Worker for PWA - Offline Support
+// Service Worker for PWA - Offline Support with Background Sync
 const CACHE_VERSION = 'skts-v1';
 const CACHE_ASSETS = [
   '/',
@@ -89,7 +89,7 @@ self.addEventListener('sync', (event) => {
 
 function syncPendingLogs() {
   return new Promise((resolve) => {
-    // Listen for messages from clients
+    // Get pending log from IndexedDB or localStorage
     self.clients.matchAll().then((clients) => {
       clients.forEach((client) => {
         client.postMessage({
@@ -102,9 +102,22 @@ function syncPendingLogs() {
   });
 }
 
-// Listen for messages from the app
+// Listen for online event to trigger sync
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'SYNC_PENDING_LOGS') {
+    // Handle pending logs sync request from client
+    event.waitUntil(syncPendingLogs());
+  }
+});
+
+// Handle online/offline status notifications
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLIENT_READY') {
+    // Notify client that SW is ready
+    event.ports[0].postMessage({ type: 'SW_READY' });
   }
 });

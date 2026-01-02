@@ -1,0 +1,165 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3b82f6">
+    <title>Chế độ Ngoại tuyến - Sổ Kỹ Thuật Số</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-surface: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --accent-primary: #3b82f6;
+            --accent-warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .offline-container {
+            background-color: var(--bg-surface);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .offline-icon {
+            font-size: 80px;
+            color: var(--accent-warning);
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        p {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .status-text {
+            background-color: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--accent-warning);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 25px 0;
+            text-align: left;
+        }
+
+        .status-text strong {
+            color: var(--accent-warning);
+        }
+
+        .retry-button {
+            margin-top: 30px;
+        }
+
+        .retry-button button {
+            background-color: var(--accent-primary);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            min-height: 50px;
+        }
+
+        .retry-button button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <!-- Offline Icon -->
+        <div class="offline-icon">
+            <i class="fas fa-wifi-off"></i>
+        </div>
+
+        <!-- Title -->
+        <h1>Mất Kết Nối Mạng</h1>
+
+        <!-- Message -->
+        <p>Ứng dụng đang chạy ở chế độ ngoại tuyến</p>
+
+        <!-- Status Box -->
+        <div class="status-text">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Dữ liệu của bạn đã được lưu tạm vào máy.</strong>
+            <p class="mb-0 mt-2">Khi kết nối được khôi phục, dữ liệu sẽ tự động được đồng bộ.</p>
+        </div>
+
+        <!-- Additional Info -->
+        <p>Bạn có thể xem các trang đã tải trước đó, nhưng sẽ không thể tải các trang mới.</p>
+
+        <!-- Retry Button -->
+        <div class="retry-button">
+            <button onclick="location.reload()">
+                <i class="fas fa-redo me-2"></i>Thử lại
+            </button>
+        </div>
+
+        <!-- Help Text -->
+        <div class="info-text">
+            <i class="fas fa-lightbulb me-1"></i>
+            Kiểm tra kết nối Wi-Fi hoặc dữ liệu di động của bạn
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

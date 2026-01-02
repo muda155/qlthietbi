@@ -201,6 +201,134 @@
     startTimeInput.addEventListener('change', calculateDuration);
     endTimeInput.addEventListener('change', calculateDuration);
 
+    // OFFLINE SUPPORT: Save form data to localStorage
+    const STORAGE_KEY = 'pending_log';
+
+    function saveFormToLocalStorage() {
+        const formData = {
+            qr_code: '{{ device_unit.qr_code }}',
+            operator_name: document.getElementById('operator_name').value,
+            start_time: startTimeInput.value,
+            end_time: endTimeInput.value,
+            timestamp: new Date().toISOString(),
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    }
+
+    function clearLocalStorage() {
+        localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function showToast(message, type = 'info') {
+        const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+        const toast = document.createElement('div');
+        toast.className = `toast show`;
+        toast.setAttribute('role', 'alert');
+        
+        const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+        toast.innerHTML = `
+            <div class="toast-header">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                <strong class="me-auto">Thông báo</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        `;
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.className = 'toast-container position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '1099';
+        document.body.appendChild(container);
+        return container;
+    }
+
+    // Enhanced form submission with offline support
+    const originalFormSubmit = logForm.onsubmit;
+    logForm.onsubmit = null;
+    logForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const operatorName = document.getElementById('operator_name').value.trim();
+        const startTime = new Date(startTimeInput.value);
+        const endTime = new Date(endTimeInput.value);
+
+        // Clear previous error
+        errorAlert.classList.add('d-none');
+        errorMessage.textContent = '';
+
+        // Validation checks
+        if (!operatorName) {
+            showError('Vui lòng nhập tên người thực hiện');
+            return;
+        }
+
+        if (!startTimeInput.value) {
+            showError('Vui lòng nhập giờ nổ máy');
+            return;
+        }
+
+        if (!endTimeInput.value) {
+            showError('Vui lòng nhập giờ tắt máy');
+            return;
+        }
+
+        if (endTime <= startTime) {
+            showError('Giờ tắt máy phải sau giờ nổ máy');
+            return;
+        }
+
+        // Check if online
+        if (navigator.onLine) {
+            // Online: submit normally
+            logForm.submit();
+        } else {
+            // Offline: save to localStorage
+            saveFormToLocalStorage();
+            showToast('Mất kết nối. Dữ liệu đã lưu tạm vào máy.', 'info');
+            
+            // Redirect after a brief delay
+            setTimeout(() => {
+                window.location.href = '{% url "dashboard" %}';
+            }, 1500);
+        }
+    });
+
+    // Save data on input change (auto-save feature)
+    document.getElementById('operator_name').addEventListener('input', saveFormToLocalStorage);
+    startTimeInput.addEventListener('change', saveFormToLocalStorage);
+    endTimeInput.addEventListener('change', saveFormToLocalStorage);
+
+    // Restore form from localStorage on page load
+    window.addEventListener('load', function() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                document.getElementById('operator_name').value = data.operator_name || '';
+                startTimeInput.value = data.start_time || '';
+                endTimeInput.value = data.end_time || '';
+                calculateDuration();
+            } catch (e) {
+                console.log('Could not restore form data');
+            }
+        }
+    });
+
+    // Listen for online event to sync pending data
+    window.addEventListener('online', function() {
+        const pending = localStorage.getItem(STORAGE_KEY);
+        if (pending) {
+            showToast('Kết nối được khôi phục. Dữ liệu sẽ được đồng bộ...', 'info');
+        }
+    });
+
     // Initialize
     setDefaultDateTime();
     calculateDuration();

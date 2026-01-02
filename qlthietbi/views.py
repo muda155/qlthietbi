@@ -1,6 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
+from django.utils import timezone
+import json
+from datetime import datetime
 from .models import Device, DeviceUnit, OperationLog, Location
 
 @require_http_methods(["GET"])
@@ -24,6 +28,11 @@ def dashboard(request):
 def scan(request):
     """QR Scanner view - displays scanner interface"""
     return render(request, 'qlthietbi/scan.html')
+
+@require_http_methods(["GET"])
+def offline(request):
+    """Offline fallback view - shown when network is unavailable"""
+    return render(request, 'qlthietbi/offline.html')
 
 @require_http_methods(["GET"])
 def device_detail(request, qr_code):
@@ -83,3 +92,70 @@ def history(request):
         'logs': logs,
     }
     return render(request, 'qlthietbi/history.html', context)
+
+@require_http_methods(["POST"])
+def api_log_entry(request, qr_code):
+    """API endpoint for submitting operation logs (AJAX support for offline sync)"""
+    try:
+        device_unit = get_object_or_404(DeviceUnit, qr_code=qr_code)
+        device = device_unit.device
+        
+        # Parse JSON body
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'success': False, 'message': 'Invalid JSON'},
+                status=400
+            )
+        
+        operator_name = data.get('operator_name', '').strip()
+        start_time_str = data.get('start_time', '')
+        end_time_str = data.get('end_time', '')
+        
+        # Validation
+        if not all([operator_name, start_time_str, end_time_str]):
+            return JsonResponse(
+                {'success': False, 'message': 'Vui lòng điền đầy đủ thông tin'},
+                status=400
+            )
+        
+        # Parse datetime strings
+        try:
+            start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            return JsonResponse(
+                {'success': False, 'message': 'Định dạng thời gian không hợp lệ'},
+                status=400
+            )
+        
+        # Validate time order
+        if end_time <= start_time:
+            return JsonResponse(
+                {'success': False, 'message': 'Giờ tắt máy phải sau giờ nổ máy'},
+                status=400
+            )
+        
+        # Create log
+        log = OperationLog(
+            device=device,
+            operator_name=operator_name,
+            start_time=start_time,
+            end_time=end_time,
+        )
+        log.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Nhật ký vận hành đã được lưu thành công',
+            'log_id': log.id,
+            'duration': log.duration,
+        })
+    
+    except Exception as e:
+        return JsonResponse(
+            {'success': False, 'message': f'Lỗi: {str(e)}'},
+            status=500
+        )
+
