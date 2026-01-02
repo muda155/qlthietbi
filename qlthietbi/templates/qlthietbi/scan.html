@@ -1,0 +1,138 @@
+{% extends 'qlthietbi/base.html' %}
+
+{% block title %}Quét mã - Sổ Kỹ Thuật Số{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-4">
+            <i class="fas fa-qrcode me-2"></i>Quét mã thiết bị
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <!-- QR Scanner Preview -->
+        <div class="card mb-3">
+            <div class="card-body p-0">
+                <div id="qr-reader" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+
+        <!-- Status Message -->
+        <div id="scan-message" class="alert alert-info" role="alert" style="display: none;">
+            <i class="fas fa-spinner fa-spin me-2"></i>
+            <span id="scan-text">Đang quét mã...</span>
+        </div>
+
+        <!-- Permission Denied Message -->
+        <div id="permission-denied" class="alert alert-danger" role="alert" style="display: none;">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Không thể truy cập camera</strong>
+            <p class="mb-0">Vui lòng cấp quyền Camera để quét mã. Kiểm tra cài đặt trình duyệt của bạn.</p>
+        </div>
+
+        <!-- Manual QR Code Input Alternative -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-keyboard me-2"></i>Nhập mã thủ công
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="manual-qr-form">
+                    <div class="mb-3">
+                        <label for="manual-qr-code" class="form-label">Mã QR</label>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="manual-qr-code" 
+                            placeholder="Nhập mã QR của thiết bị"
+                            autocomplete="off"
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-check me-2"></i>Tìm thiết bị
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let html5QrcodeScanner = null;
+    let scanComplete = false;
+
+    function onScanSuccess(decodedText, decodedResult) {
+        if (scanComplete) return;
+        scanComplete = true;
+
+        const message = document.getElementById('scan-message');
+        const text = document.getElementById('scan-text');
+        text.textContent = 'Tìm thấy mã: ' + decodedText;
+        message.style.display = 'block';
+        message.className = 'alert alert-success';
+
+        // Redirect after 1 second
+        setTimeout(() => {
+            window.location.href = `/thiet-bi/${encodeURIComponent(decodedText)}/`;
+        }, 1000);
+    }
+
+    function onScanError(error) {
+        // Ignore scan errors, they happen frequently
+        console.debug('QR Scan Error:', error);
+    }
+
+    function startScanner() {
+        try {
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "qr-reader",
+                { 
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                }
+            );
+
+            html5QrcodeScanner.render(onScanSuccess, onScanError);
+        } catch (err) {
+            console.error('Error starting scanner:', err);
+            document.getElementById('permission-denied').style.display = 'block';
+        }
+    }
+
+    function stopScanner() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear();
+        }
+    }
+
+    // Manual QR Input Form
+    document.getElementById('manual-qr-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const qrCode = document.getElementById('manual-qr-code').value.trim();
+        
+        if (!qrCode) {
+            alert('Vui lòng nhập mã QR');
+            return;
+        }
+
+        window.location.href = `/thiet-bi/${encodeURIComponent(qrCode)}/`;
+    });
+
+    // Start scanner on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        startScanner();
+    });
+
+    // Stop scanner when leaving page
+    window.addEventListener('beforeunload', function() {
+        stopScanner();
+    });
+</script>
+{% endblock %}

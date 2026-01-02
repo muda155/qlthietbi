@@ -1,0 +1,143 @@
+{% extends 'qlthietbi/base.html' %}
+
+{% block title %}{{ device.name }} - Sổ Kỹ Thuật Số{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary mb-3">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+        <h1 class="h3 mb-3">{{ device.name }}</h1>
+    </div>
+</div>
+
+<!-- Device Information Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Thông tin hệ thống
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-6 col-md-4">
+                        <label class="form-label text-muted">Ngành</label>
+                        <p class="mb-0">{{ device.department.name }}</p>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <label class="form-label text-muted">Tổng giờ tích luỹ</label>
+                        <p class="mb-0 h5" style="color: var(--accent-primary);">{{ device.total_system_hours }} h</p>
+                    </div>
+                </div>
+                {% if device.description %}
+                    <div class="row">
+                        <div class="col-12">
+                            <label class="form-label text-muted">Mô tả</label>
+                            <p class="mb-0">{{ device.description }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Device Unit Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header" style="background-color: rgba(65, 90, 119, 0.5);">
+                <h5 class="mb-0">
+                    <i class="fas fa-microchip me-2"></i>Khối hiện tại
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-12 col-md-6 mb-3">
+                        <label class="form-label text-muted">Tên khối</label>
+                        <p class="mb-0 h5">{{ device_unit.name }}</p>
+                    </div>
+                    <div class="col-12 col-md-6 mb-3">
+                        <label class="form-label text-muted">Mã QR</label>
+                        <p class="mb-0 font-monospace">{{ device_unit.qr_code }}</p>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-6 col-md-3 mb-3">
+                        <label class="form-label text-muted">Vị trí lắp đặt</label>
+                        <p class="mb-0">{{ device_unit.location.name|default:"Không xác định" }}</p>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <label class="form-label text-muted">Giờ chạy</label>
+                        <p class="mb-0 h5" style="color: var(--accent-primary);">{{ device_unit.current_hours }} h</p>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <label class="form-label text-muted">Định mức bảo dưỡng</label>
+                        <p class="mb-0">{{ device_unit.maintenance_threshold }} h</p>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <label class="form-label text-muted">Trạng thái kỹ thuật</label>
+                        <p class="mb-0">
+                            {% if device_unit.status == 'NORMAL' %}
+                                <span class="badge bg-success">Tốt (C1)</span>
+                            {% elif device_unit.status == 'MAINTENANCE' %}
+                                <span class="badge bg-warning text-dark">Cần bảo dưỡng (C2)</span>
+                            {% elif device_unit.status == 'ERROR' %}
+                                <span class="badge bg-danger">Hỏng hóc/Sự cố</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Entry Button -->
+<div class="row mb-4">
+    <div class="col-12">
+        <a href="{% url 'log_entry' device_unit.qr_code %}" class="btn btn-success btn-lg w-100">
+            <i class="fas fa-plus-circle me-2"></i>Ghi Nhật Ký
+        </a>
+    </div>
+</div>
+
+<!-- All Units Section (if device has multiple units) -->
+{% if all_units.count > 1 %}
+    <div class="row">
+        <div class="col-12">
+            <h5 class="mb-3">
+                <i class="fas fa-list me-2"></i>Tất cả khối chi tiết
+            </h5>
+            <div class="list-group">
+                {% for unit in all_units %}
+                    <a href="{% url 'device_detail' unit.qr_code %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ unit.name }}</h6>
+                                <small class="text-muted">{{ unit.qr_code }}</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="mb-1">
+                                    {% if unit.status == 'NORMAL' %}
+                                        <span class="badge bg-success">Tốt</span>
+                                    {% elif unit.status == 'MAINTENANCE' %}
+                                        <span class="badge bg-warning text-dark">Bảo dưỡng</span>
+                                    {% elif unit.status == 'ERROR' %}
+                                        <span class="badge bg-danger">Hỏng</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ unit.current_hours }}h</small>
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

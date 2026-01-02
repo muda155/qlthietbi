@@ -1,0 +1,208 @@
+{% extends 'qlthietbi/base.html' %}
+
+{% block title %}Ghi Nhật Ký - Sổ Kỹ Thuật Số{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <a href="{% url 'device_detail' device_unit.qr_code %}" class="btn btn-sm btn-outline-secondary mb-3">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+        <h1 class="h3 mb-3">
+            <i class="fas fa-pen-square me-2"></i>Ghi Nhật Ký Vận Hành
+        </h1>
+    </div>
+</div>
+
+<!-- Device Information -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Thiết bị</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-1">
+                    <strong>{{ device.name }}</strong> - {{ device_unit.name }}
+                </p>
+                <small class="text-muted">{{ device_unit.qr_code }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Entry Form -->
+<div class="row">
+    <div class="col-12">
+        <form method="post" id="log-form">
+            {% csrf_token %}
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin vận hành</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Operator Name -->
+                    <div class="mb-3">
+                        <label for="operator_name" class="form-label">Người thực hiện <span class="text-danger">*</span></label>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="operator_name" 
+                            name="operator_name"
+                            placeholder="Nhập tên người vận hành"
+                            required
+                        >
+                        <small class="form-text text-muted">Tên của người điều hành thiết bị</small>
+                    </div>
+
+                    <!-- Start Time -->
+                    <div class="mb-3">
+                        <label for="start_time" class="form-label">Giờ nổ máy <span class="text-danger">*</span></label>
+                        <input 
+                            type="datetime-local" 
+                            class="form-control" 
+                            id="start_time" 
+                            name="start_time"
+                            required
+                        >
+                        <small class="form-text text-muted">Thời điểm bật/nổ máy</small>
+                    </div>
+
+                    <!-- End Time -->
+                    <div class="mb-3">
+                        <label for="end_time" class="form-label">Giờ tắt máy <span class="text-danger">*</span></label>
+                        <input 
+                            type="datetime-local" 
+                            class="form-control" 
+                            id="end_time" 
+                            name="end_time"
+                            required
+                        >
+                        <small class="form-text text-muted">Thời điểm tắt máy</small>
+                    </div>
+
+                    <!-- Validation Error Alert -->
+                    <div id="error-alert" class="alert alert-danger d-none" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="error-message"></span>
+                    </div>
+
+                    <!-- Duration Display (read-only) -->
+                    <div class="mb-3">
+                        <label for="duration_display" class="form-label">Thời gian hoạt động</label>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="duration_display" 
+                            placeholder="-- giờ"
+                            readonly
+                            style="background-color: rgba(65, 90, 119, 0.2); cursor: not-allowed;"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-save me-2"></i>Lưu nhật ký
+                </button>
+                <a href="{% url 'device_detail' device_unit.qr_code %}" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-times me-2"></i>Hủy bỏ
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const startTimeInput = document.getElementById('start_time');
+    const endTimeInput = document.getElementById('end_time');
+    const durationDisplay = document.getElementById('duration_display');
+    const errorAlert = document.getElementById('error-alert');
+    const errorMessage = document.getElementById('error-message');
+    const logForm = document.getElementById('log-form');
+
+    // Set default to current date/time
+    function setDefaultDateTime() {
+        const now = new Date();
+        const isoString = now.toISOString().slice(0, 16);
+        startTimeInput.value = isoString;
+        endTimeInput.value = isoString;
+    }
+
+    // Calculate duration when times change
+    function calculateDuration() {
+        if (!startTimeInput.value || !endTimeInput.value) {
+            durationDisplay.value = '-- giờ';
+            return;
+        }
+
+        const startTime = new Date(startTimeInput.value);
+        const endTime = new Date(endTimeInput.value);
+        const diffMs = endTime - startTime;
+
+        if (diffMs < 0) {
+            durationDisplay.value = '-- giờ';
+        } else {
+            const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
+            durationDisplay.value = diffHours + ' giờ';
+        }
+    }
+
+    // Form validation
+    logForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const operatorName = document.getElementById('operator_name').value.trim();
+        const startTime = new Date(startTimeInput.value);
+        const endTime = new Date(endTimeInput.value);
+
+        // Clear previous error
+        errorAlert.classList.add('d-none');
+        errorMessage.textContent = '';
+
+        // Validation checks
+        if (!operatorName) {
+            showError('Vui lòng nhập tên người thực hiện');
+            return;
+        }
+
+        if (!startTimeInput.value) {
+            showError('Vui lòng nhập giờ nổ máy');
+            return;
+        }
+
+        if (!endTimeInput.value) {
+            showError('Vui lòng nhập giờ tắt máy');
+            return;
+        }
+
+        if (endTime <= startTime) {
+            showError('Giờ tắt máy phải sau giờ nổ máy');
+            return;
+        }
+
+        // If all validations pass, submit the form
+        logForm.submit();
+    });
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorAlert.classList.remove('d-none');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Event listeners for duration calculation
+    startTimeInput.addEventListener('change', calculateDuration);
+    endTimeInput.addEventListener('change', calculateDuration);
+
+    // Initialize
+    setDefaultDateTime();
+    calculateDuration();
+</script>
+{% endblock %}

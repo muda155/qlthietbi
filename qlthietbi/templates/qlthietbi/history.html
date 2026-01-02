@@ -1,0 +1,92 @@
+{% extends 'qlthietbi/base.html' %}
+
+{% block title %}Lịch sử - Sổ Kỹ Thuật Số{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-4">
+            <i class="fas fa-history me-2"></i>Lịch sử vận hành
+        </h1>
+    </div>
+</div>
+
+{% if logs %}
+    <div class="row">
+        <div class="col-12">
+            <div class="list-group">
+                {% for log in logs %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cogs me-2"></i>{{ log.device.name }}
+                            </h6>
+                            <div class="text-end">
+                                {% if log.duration %}
+                                    <span class="badge bg-primary">{{ log.duration }} h</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">-- h</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-2 mb-3">
+                            <div class="col-6 col-md-3">
+                                <small class="text-muted d-block">Người vận hành</small>
+                                <p class="mb-0">{{ log.operator_name }}</p>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <small class="text-muted d-block">Giờ nổ máy</small>
+                                <p class="mb-0 font-monospace">{{ log.start_time|date:"d/m H:i" }}</p>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <small class="text-muted d-block">Giờ tắt máy</small>
+                                <p class="mb-0 font-monospace">{{ log.end_time|date:"d/m H:i" }}</p>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <small class="text-muted d-block">Thời gian hoạt động</small>
+                                <p class="mb-0">
+                                    {% if log.duration %}
+                                        <span style="color: var(--accent-primary);">{{ log.duration }}</span> h
+                                    {% else %}
+                                        <span class="text-muted">--</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <a href="{% url 'device_detail' log.device.units.first.qr_code %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>Xem chi tiết
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination Info -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <p class="text-muted text-center mb-0">
+                <i class="fas fa-info-circle me-2"></i>Hiển thị {{ logs.count }} nhật ký
+            </p>
+        </div>
+    </div>
+{% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Chưa có dữ liệu</strong>
+                <p class="mb-0 mt-2">Chưa có nhật ký vận hành nào được ghi lại. Hãy bắt đầu bằng cách quét mã QR của thiết bị.</p>
+            </div>
+
+            <div class="d-grid gap-2 mt-4">
+                <a href="{% url 'scan' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-qrcode me-2"></i>Quét mã thiết bị
+                </a>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends 'qlthietbi/base.html' %}
+
+{% block title %}Bảng chỉ huy - Sổ Kỹ Thuật Số{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-4">
+            <i class="fas fa-chart-line me-2"></i>Bảng chỉ huy
+        </h1>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-12 col-md-4 mb-3">
+        <div class="summary-card good">
+            <div>
+                <h5 class="mb-1">Hoạt động tốt</h5>
+                <small class="text-muted">Trạng thái C1</small>
+            </div>
+            <div class="count" style="color: var(--accent-success);">{{ normal_count }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4 mb-3">
+        <div class="summary-card maintenance">
+            <div>
+                <h5 class="mb-1">Cần bảo dưỡng</h5>
+                <small class="text-muted">Trạng thái C2</small>
+            </div>
+            <div class="count" style="color: var(--accent-warning);">{{ maintenance_count }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4 mb-3">
+        <div class="summary-card broken">
+            <div>
+                <h5 class="mb-1">Hỏng hóc</h5>
+                <small class="text-muted">Sự cố</small>
+            </div>
+            <div class="count" style="color: var(--accent-danger);">{{ error_count }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Logs Section -->
+<div class="row">
+    <div class="col-12">
+        <h4 class="mb-3">
+            <i class="fas fa-history me-2"></i>Nhật ký gần đây
+        </h4>
+        
+        {% if recent_logs %}
+            <div class="list-group">
+                {% for log in recent_logs %}
+                    <a href="{% url 'device_detail' log.device.units.first.qr_code %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ log.device.name }}</h6>
+                            <small class="text-muted">{{ log.duration|default:"--" }}h</small>
+                        </div>
+                        <p class="mb-1">
+                            <i class="fas fa-user me-2"></i>{{ log.operator_name }}
+                        </p>
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>{{ log.start_time|date:"d/m/Y H:i" }}
+                        </small>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                Chưa có nhật ký vận hành
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
