@@ -55,20 +55,38 @@ def log_entry(request, qr_code):
     device = device_unit.device
     
     if request.method == 'POST':
-        operator_name = request.POST.get('operator_name', '')
-        start_time = request.POST.get('start_time', '')
-        end_time = request.POST.get('end_time', '')
+        operator_name = request.POST.get('operator_name', '').strip()
+        start_time_str = request.POST.get('start_time', '')
+        end_time_str = request.POST.get('end_time', '')
+        device_status = request.POST.get('device_status', 'NORMAL')
+        notes = request.POST.get('notes', '').strip()
         
-        if not operator_name or not start_time or not end_time:
+        if not operator_name or not start_time_str or not end_time_str:
             messages.error(request, 'Vui lòng điền đầy đủ thông tin')
             return redirect('log_entry', qr_code=qr_code)
         
         try:
+            # Parse datetime strings to datetime objects
+            try:
+                start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                messages.error(request, 'Định dạng thời gian không hợp lệ')
+                return redirect('log_entry', qr_code=qr_code)
+            
+            # Validate time order
+            if end_time <= start_time:
+                messages.error(request, 'Giờ tắt máy phải sau giờ nổ máy')
+                return redirect('log_entry', qr_code=qr_code)
+            
             log = OperationLog(
                 device=device,
+                device_unit=device_unit,
                 operator_name=operator_name,
                 start_time=start_time,
                 end_time=end_time,
+                device_status=device_status,
+                notes=notes,
             )
             log.save()
             messages.success(request, 'Nhật ký vận hành đã được lưu thành công')
@@ -112,6 +130,8 @@ def api_log_entry(request, qr_code):
         operator_name = data.get('operator_name', '').strip()
         start_time_str = data.get('start_time', '')
         end_time_str = data.get('end_time', '')
+        device_status = data.get('device_status', 'NORMAL')
+        notes = data.get('notes', '').strip()
         
         # Validation
         if not all([operator_name, start_time_str, end_time_str]):
@@ -140,9 +160,12 @@ def api_log_entry(request, qr_code):
         # Create log
         log = OperationLog(
             device=device,
+            device_unit=device_unit,
             operator_name=operator_name,
             start_time=start_time,
             end_time=end_time,
+            device_status=device_status,
+            notes=notes,
         )
         log.save()
         
@@ -151,6 +174,7 @@ def api_log_entry(request, qr_code):
             'message': 'Nhật ký vận hành đã được lưu thành công',
             'log_id': log.id,
             'duration': log.duration,
+            'device_status': log.get_device_status_display(),
         })
     
     except Exception as e:

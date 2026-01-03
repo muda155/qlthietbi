@@ -84,30 +84,52 @@ class DeviceUnit(models.Model):
         verbose_name_plural = "4. Khối chi tiết"
 
 class OperationLog(models.Model):
+    # Device status choices - reported by operator
+    DEVICE_STATUS_CHOICES = [
+        ('NORMAL', 'Hoạt động bình thường (C1)'),
+        ('MAINTENANCE', 'Cần bảo dưỡng (C2)'),
+        ('ERROR', 'Hỏng hóc/Sự cố')
+    ]
+    
     device = models.ForeignKey(Device, on_delete = models.CASCADE, verbose_name = "Chọn thiết bị")
+    device_unit = models.ForeignKey(DeviceUnit, on_delete = models.CASCADE, null=True, blank=True, verbose_name = "Khối chi tiết")
     operator_name = models.CharField(max_length = 50, verbose_name = "Người thực hiện")
     start_time = models.DateTimeField(verbose_name = "Thời gian bật")
     end_time = models.DateTimeField(verbose_name = "Thời gian tắt")
     duration = models.FloatField(blank = True, null = True, verbose_name = "Giờ hoạt động (h)")
+    device_status = models.CharField(max_length = 20, choices = DEVICE_STATUS_CHOICES, default = 'NORMAL', verbose_name = "Trạng thái thiết bị khi tắt máy")
+    notes = models.TextField(blank = True, verbose_name = "Ghi chú/Mô tả vấn đề")
     
     def save(self, *args, **kwargs):
-        if self.start_time - self.end_time:
+        # Calculate duration only if both times are set
+        if self.start_time and self.end_time:
             diff = self.end_time - self.start_time
-            self.duration = round(diff.total_seconds() / 3600 , 2)
-            self.device.total_system_hours += self.duration
-            self.device.save()
-            if self.device.pk:
-                units = self.device.units.all()
-                for unit in units:
-                    if unit.current_hours >= unit.maintenance_threshold:
-                        unit.status = 'MAINTENANCE'
-                    unit.save()
+            # Only process if duration is positive
+            if diff.total_seconds() > 0:
+                self.duration = round(diff.total_seconds() / 3600, 2)
+                self.device.total_system_hours += self.duration
+                self.device.save()
+                
+                # Update all units of this device with:
+                # 1. Add operation hours
+                # 2. Update status based on operator's report
+                if self.device.pk:
+                    units = self.device.units.all()
+                    for unit in units:
+                        # Add duration to each unit's current hours (for tracking)
+                        unit.current_hours += self.duration
+                        
+                        # Update unit status from operator's report
+                        unit.status = self.device_status
+                        
+                        unit.save()
         super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"Log: {self.device.name} - {self.duration}h"
+        return f"Log: {self.device.name} - {self.duration}h - {self.get_device_status_display()}"
     
     class Meta:
         verbose_name = "5. Nhật ký máy"
         verbose_name_plural = "5. Nhật ký máy"
+        ordering = ['-start_time']
 
