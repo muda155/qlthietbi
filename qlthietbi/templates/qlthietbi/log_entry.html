@@ -103,6 +103,44 @@
                 </div>
             </div>
 
+            <!-- Device Status Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Trạng thái thiết bị khi tắt máy</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Device Status -->
+                    <div class="mb-3">
+                        <label for="device_status" class="form-label">Báo cáo trạng thái <span class="text-danger">*</span></label>
+                        <select 
+                            class="form-select" 
+                            id="device_status" 
+                            name="device_status"
+                            required
+                        >
+                            <option value="NORMAL">✅ Hoạt động bình thường (C1)</option>
+                            <option value="MAINTENANCE">⚠️ Cần bảo dưỡng (C2)</option>
+                            <option value="ERROR">❌ Hỏng hóc/Sự cố</option>
+                        </select>
+                        <small class="form-text text-muted">Chọn trạng thái thiết bị sau khi tắt máy</small>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Ghi chú/Mô tả vấn đề</label>
+                        <textarea 
+                            class="form-control" 
+                            id="notes" 
+                            name="notes"
+                            placeholder="Ghi chú chi tiết nếu có sự cố hoặc cần bảo dưỡng..."
+                            rows="4"
+                            style="resize: vertical;"
+                        ></textarea>
+                        <small class="form-text text-muted">Mô tả chi tiết các vấn đề phát hiện (nếu có)</small>
+                    </div>
+                </div>
+            </div>
+
             <!-- Buttons -->
             <div class="d-grid gap-2 mt-4">
                 <button type="submit" class="btn btn-success btn-lg">
@@ -210,6 +248,8 @@
             operator_name: document.getElementById('operator_name').value,
             start_time: startTimeInput.value,
             end_time: endTimeInput.value,
+            device_status: document.getElementById('device_status').value,
+            notes: document.getElementById('notes').value,
             timestamp: new Date().toISOString(),
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
@@ -304,6 +344,8 @@
     document.getElementById('operator_name').addEventListener('input', saveFormToLocalStorage);
     startTimeInput.addEventListener('change', saveFormToLocalStorage);
     endTimeInput.addEventListener('change', saveFormToLocalStorage);
+    document.getElementById('device_status').addEventListener('change', saveFormToLocalStorage);
+    document.getElementById('notes').addEventListener('input', saveFormToLocalStorage);
 
     // Restore form from localStorage on page load
     window.addEventListener('load', function() {
@@ -314,6 +356,8 @@
                 document.getElementById('operator_name').value = data.operator_name || '';
                 startTimeInput.value = data.start_time || '';
                 endTimeInput.value = data.end_time || '';
+                document.getElementById('device_status').value = data.device_status || 'NORMAL';
+                document.getElementById('notes').value = data.notes || '';
                 calculateDuration();
             } catch (e) {
                 console.log('Could not restore form data');
