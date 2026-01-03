@@ -4,209 +4,145 @@
 
 {% block extra_css %}
 <style>
+    /* KHUNG CHỨA: Giới hạn chiều cao để không chiếm hết màn hình */
     #qr-reader {
+        width: 100%;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* VIDEO: Quan trọng nhất */
+    #qr-reader video {
+        /* Dùng contain để nhìn thấy TOÀN BỘ video, không bị cắt cúp */
+        object-fit: contain !important; 
         width: 100% !important;
-        max-width: 100% !important;
-        height: 400px !important;
-        max-height: 400px !important;
-        overflow: hidden !important;
-    }
-    
-    #qr-reader > video {
-        max-width: 100% !important;
-        max-height: 400px !important;
-    }
-    
-    #qr-reader > div {
-        max-width: 100% !important;
-        max-height: 400px !important;
+        height: auto !important;
+        max-height: 60vh !important; /* Giới hạn chiều cao tối đa 60% màn hình */
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row mb-4">
+<div class="row mb-3">
     <div class="col-12">
-        <h1 class="h3 mb-4">
+        <h1 class="h4 mb-3 text-light">
             <i class="fas fa-qrcode me-2"></i>Quét mã thiết bị
         </h1>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-12">
+    <div class="col-12 mx-auto">
         <!-- QR Scanner Preview -->
-        <div class="card mb-3">
-            <div class="card-body p-0" style="overflow: hidden;">
+        <div class="card mb-3 bg-dark border-secondary">
+            <div class="card-body p-1">
                 <div id="qr-reader"></div>
+            </div>
+            <!-- Nút đổi Camera thủ công (Nếu máy tự chọn sai) -->
+            <div class="card-footer bg-transparent border-0 text-center">
+                <button class="btn btn-outline-light btn-sm" onclick="restartScanner()">
+                    <i class="fas fa-sync-alt me-2"></i>Đổi Camera
+                </button>
             </div>
         </div>
 
         <!-- Status Message -->
         <div id="scan-message" class="alert alert-info" role="alert" style="display: none;">
             <i class="fas fa-spinner fa-spin me-2"></i>
-            <span id="scan-text">Đang quét mã...</span>
+            <span id="scan-text">Đang xử lý...</span>
         </div>
 
-        <!-- Permission Denied Message -->
-        <div id="permission-denied" class="alert alert-danger" role="alert" style="display: none;">
-            <i class="fas fa-exclamation-circle me-2"></i>
-            <strong>Không thể truy cập camera</strong>
-            <p class="mb-0">Vui lòng cấp quyền Camera để quét mã. Kiểm tra cài đặt trình duyệt của bạn.</p>
-        </div>
-
-        <!-- Manual QR Code Input Alternative -->
-        <div class="card mt-3">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-keyboard me-2"></i>Nhập mã thủ công
-                </h5>
-            </div>
+        <!-- Manual Input -->
+        <div class="card bg-dark border-secondary">
             <div class="card-body">
-                <form id="manual-qr-form">
-                    <div class="mb-3">
-                        <label for="manual-qr-code" class="form-label">Mã QR</label>
-                        <input 
-                            type="text" 
-                            class="form-control" 
-                            id="manual-qr-code" 
-                            placeholder="Nhập mã QR của thiết bị"
-                            autocomplete="off"
-                        >
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-check me-2"></i>Tìm thiết bị
+                <form id="manual-qr-form" class="d-flex gap-2">
+                    <input 
+                        type="text" 
+                        class="form-control bg-secondary text-white border-0" 
+                        id="manual-qr-code" 
+                        placeholder="Nhập mã (VD: GKU5-R1)"
+                        autocomplete="off"
+                    >
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
                     </button>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
 <script>
     let html5QrcodeScanner = null;
-    let scanComplete = false;
+    let currentFacingMode = "environment"; // Mặc định dùng Camera sau
 
     function onScanSuccess(decodedText, decodedResult) {
-        if (scanComplete) return;
-        scanComplete = true;
-
-        const message = document.getElementById('scan-message');
-        const text = document.getElementById('scan-text');
-        text.textContent = 'Tìm thấy mã: ' + decodedText;
-        message.style.display = 'block';
-        message.className = 'alert alert-success';
-
-        // Redirect after 1 second
-        setTimeout(() => {
-            window.location.href = `/thiet-bi/${encodeURIComponent(decodedText)}/`;
-        }, 1000);
-    }
-
-    function onScanError(error) {
-        // Ignore scan errors, they happen frequently
-        console.debug('QR Scan Error:', error);
-    }
-
-    function startScanner() {
-        try {
-            // Get available cameras and prefer back/rear camera
-            Html5Qrcode.getCameras().then(devices => {
-                let cameraId = null;
-                
-                if (devices && devices.length > 0) {
-                    // Try to find back/rear camera
-                    const backCamera = devices.find(device => 
-                        device.label.toLowerCase().includes('back') || 
-                        device.label.toLowerCase().includes('rear') ||
-                        device.label.toLowerCase().includes('main')
-                    );
-                    
-                    // Use back camera if found, otherwise use first camera
-                    cameraId = backCamera ? backCamera.id : devices[0].id;
-                    
-                    console.log('Available cameras:', devices);
-                    console.log('Using camera:', cameraId);
-                }
-                
-                // Create scanner with back camera preference
-                const config = { 
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
-                };
-                
-                if (cameraId) {
-                    config.rememberLastUsedCamera = true;
-                    config.supportedScanTypes = [];
-                }
-                
-                html5QrcodeScanner = new Html5QrcodeScanner(
-                    "qr-reader",
-                    config
-                );
-
-                // If camera ID found, use it; otherwise let it auto-select
-                if (cameraId) {
-                    html5QrcodeScanner.render(onScanSuccess, onScanError);
-                    // Try to start with specific camera
-                    setTimeout(() => {
-                        html5QrcodeScanner.getState() === 2 && 
-                        html5QrcodeScanner._qrScanner && 
-                        html5QrcodeScanner._qrScanner.setCamera(cameraId);
-                    }, 500);
-                } else {
-                    html5QrcodeScanner.render(onScanSuccess, onScanError);
-                }
-            }).catch(err => {
-                console.error('Error getting cameras:', err);
-                // Fallback to basic scanner
-                html5QrcodeScanner = new Html5QrcodeScanner(
-                    "qr-reader",
-                    { 
-                        fps: 10,
-                        qrbox: { width: 250, height: 250 },
-                        aspectRatio: 1.0
-                    }
-                );
-                html5QrcodeScanner.render(onScanSuccess, onScanError);
-            });
-        } catch (err) {
-            console.error('Error starting scanner:', err);
-            document.getElementById('permission-denied').style.display = 'block';
-        }
-    }
-
-    function stopScanner() {
+        // Dừng camera ngay
         if (html5QrcodeScanner) {
             html5QrcodeScanner.clear();
         }
+
+        const message = document.getElementById('scan-message');
+        const text = document.getElementById('scan-text');
+        
+        message.style.display = 'block';
+        message.className = 'alert alert-success';
+        text.textContent = 'Đã tìm thấy: ' + decodedText;
+
+        setTimeout(() => {
+            window.location.href = `/thiet-bi/${encodeURIComponent(decodedText)}/`;
+        }, 500);
     }
 
-    // Manual QR Input Form
+    function startScanner(facingMode) {
+        // Nếu đang chạy thì tắt đi bật lại
+        if (html5QrcodeScanner) {
+            try { html5QrcodeScanner.clear(); } catch(e){}
+        }
+
+        const config = { 
+            fps: 10,
+            // qrbox dạng hàm: Tự động lấy 60% chiều rộng video làm vùng quét
+            qrbox: function(viewfinderWidth, viewfinderHeight) {
+                let minEdgePercentage = 0.6; 
+                let minSize = Math.min(viewfinderWidth, viewfinderHeight);
+                let qrboxSize = Math.floor(minSize * minEdgePercentage);
+                return { width: qrboxSize, height: qrboxSize };
+            },
+            // BỎ aspectRatio để video tự nhiên theo màn hình Tablet
+            videoConstraints: {
+                facingMode: facingMode 
+            }
+        };
+
+        html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", config, false);
+        html5QrcodeScanner.render(onScanSuccess, (err) => {});
+    }
+
+    // Hàm đổi camera (Nút bấm)
+    function restartScanner() {
+        // Đảo chiều camera: Nếu đang Sau -> Trước, đang Trước -> Sau
+        currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+        startScanner(currentFacingMode);
+    }
+
+    // Form nhập tay
     document.getElementById('manual-qr-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const qrCode = document.getElementById('manual-qr-code').value.trim();
-        
-        if (!qrCode) {
-            alert('Vui lòng nhập mã QR');
-            return;
-        }
-
-        window.location.href = `/thiet-bi/${encodeURIComponent(qrCode)}/`;
+        if (qrCode) window.location.href = `/thiet-bi/${encodeURIComponent(qrCode)}/`;
     });
 
-    // Start scanner on page load
+    // Chạy ngay khi load
     document.addEventListener('DOMContentLoaded', function() {
-        startScanner();
-    });
-
-    // Stop scanner when leaving page
-    window.addEventListener('beforeunload', function() {
-        stopScanner();
+        // Thử khởi động với camera sau (environment)
+        startScanner(currentFacingMode);
     });
 </script>
 {% endblock %}
