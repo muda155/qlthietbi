@@ -83,6 +83,8 @@
     let currentFacingMode = "environment"; // Mặc định dùng Camera sau
 
     function onScanSuccess(decodedText, decodedResult) {
+        console.log('QR Code detected:', decodedText);
+        
         // Dừng camera ngay
         if (html5QrcodeScanner) {
             html5QrcodeScanner.clear();
@@ -95,6 +97,8 @@
         message.className = 'alert alert-success';
         text.textContent = 'Đã tìm thấy: ' + decodedText;
 
+        console.log('Redirecting to:', `/thiet-bi/${encodeURIComponent(decodedText)}/`);
+        
         setTimeout(() => {
             window.location.href = `/thiet-bi/${encodeURIComponent(decodedText)}/`;
         }, 500);
@@ -108,21 +112,28 @@
 
         const config = { 
             fps: 10,
-            // qrbox dạng hàm: Tự động lấy 60% chiều rộng video làm vùng quét
             qrbox: function(viewfinderWidth, viewfinderHeight) {
                 let minEdgePercentage = 0.6; 
                 let minSize = Math.min(viewfinderWidth, viewfinderHeight);
                 let qrboxSize = Math.floor(minSize * minEdgePercentage);
                 return { width: qrboxSize, height: qrboxSize };
             },
-            // BỎ aspectRatio để video tự nhiên theo màn hình Tablet
             videoConstraints: {
                 facingMode: facingMode 
             }
         };
 
-        html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", config, false);
-        html5QrcodeScanner.render(onScanSuccess, (err) => {});
+        try {
+            html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", config, false);
+            html5QrcodeScanner.render(onScanSuccess, (err) => {
+                console.error('QR Scan Error:', err);
+            });
+        } catch (error) {
+            console.error('Failed to start scanner:', error);
+            document.getElementById('scan-message').style.display = 'block';
+            document.getElementById('scan-message').className = 'alert alert-danger';
+            document.getElementById('scan-text').textContent = 'Lỗi: Không thể khởi động camera. ' + error.message;
+        }
     }
 
     // Hàm đổi camera (Nút bấm)
@@ -141,6 +152,7 @@
 
     // Chạy ngay khi load
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('Page loaded, starting QR scanner...');
         // Thử khởi động với camera sau (environment)
         startScanner(currentFacingMode);
     });
