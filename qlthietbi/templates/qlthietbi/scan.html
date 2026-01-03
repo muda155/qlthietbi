@@ -91,15 +91,65 @@
 
     function startScanner() {
         try {
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "qr-reader",
-                { 
+            // Get available cameras and prefer back/rear camera
+            Html5Qrcode.getCameras().then(devices => {
+                let cameraId = null;
+                
+                if (devices && devices.length > 0) {
+                    // Try to find back/rear camera
+                    const backCamera = devices.find(device => 
+                        device.label.toLowerCase().includes('back') || 
+                        device.label.toLowerCase().includes('rear') ||
+                        device.label.toLowerCase().includes('main')
+                    );
+                    
+                    // Use back camera if found, otherwise use first camera
+                    cameraId = backCamera ? backCamera.id : devices[0].id;
+                    
+                    console.log('Available cameras:', devices);
+                    console.log('Using camera:', cameraId);
+                }
+                
+                // Create scanner with back camera preference
+                const config = { 
                     fps: 10,
                     qrbox: { width: 250, height: 250 }
+                };
+                
+                if (cameraId) {
+                    config.rememberLastUsedCamera = true;
+                    config.supportedScanTypes = [];
                 }
-            );
+                
+                html5QrcodeScanner = new Html5QrcodeScanner(
+                    "qr-reader",
+                    config
+                );
 
-            html5QrcodeScanner.render(onScanSuccess, onScanError);
+                // If camera ID found, use it; otherwise let it auto-select
+                if (cameraId) {
+                    html5QrcodeScanner.render(onScanSuccess, onScanError);
+                    // Try to start with specific camera
+                    setTimeout(() => {
+                        html5QrcodeScanner.getState() === 2 && 
+                        html5QrcodeScanner._qrScanner && 
+                        html5QrcodeScanner._qrScanner.setCamera(cameraId);
+                    }, 500);
+                } else {
+                    html5QrcodeScanner.render(onScanSuccess, onScanError);
+                }
+            }).catch(err => {
+                console.error('Error getting cameras:', err);
+                // Fallback to basic scanner
+                html5QrcodeScanner = new Html5QrcodeScanner(
+                    "qr-reader",
+                    { 
+                        fps: 10,
+                        qrbox: { width: 250, height: 250 }
+                    }
+                );
+                html5QrcodeScanner.render(onScanSuccess, onScanError);
+            });
         } catch (err) {
             console.error('Error starting scanner:', err);
             document.getElementById('permission-denied').style.display = 'block';
