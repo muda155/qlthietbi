@@ -4,6 +4,7 @@ const CACHE_ASSETS = [
   '/',
   '/static/manifest.json',
   '/offline/',
+  '/static/js/html5-qrcode.min.js',
 ];
 
 // Install: Cache core assets

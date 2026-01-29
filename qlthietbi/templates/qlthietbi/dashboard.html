@@ -42,6 +42,57 @@
     </div>
 </div>
 
+<!-- Pending Approvals (Commanders Only) -->
+{% if is_commander and pending_logs %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-3 text-warning">
+            <i class="fas fa-tasks me-2"></i>Cần duyệt ({{ pending_count }})
+        </h4>
+        <div class="list-group">
+            {% for log in pending_logs %}
+                <div class="list-group-item bg-dark border-warning text-light mb-2 rounded">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1 text-warning">{{ log.device.name }}</h6>
+                        <small>{{ log.start_time|date:"d/m H:i" }}</small>
+                    </div>
+                    <p class="mb-1">
+                        <i class="fas fa-user me-2"></i>{{ log.get_operator_display_name }} ({{ log.duration }}h)
+                    </p>
+                    <small class="d-block mb-2 text-muted">
+                        Báo cáo: 
+                        <span class="{% if log.device_status == 'NORMAL' %}text-success{% elif log.device_status == 'MAINTENANCE' %}text-warning{% else %}text-danger{% endif %}">
+                            {{ log.get_device_status_display }}
+                        </span>
+                    </small>
+                    
+                    <div class="d-flex gap-2 mt-2">
+                        <form method="post" action="{% url 'approve_log' log.id %}" class="w-50">
+                            {% csrf_token %}
+                            <button class="btn btn-success btn-sm w-100">
+                                <i class="fas fa-check me-1"></i>Duyệt
+                            </button>
+                        </form>
+                        <button class="btn btn-danger btn-sm w-50" onclick="document.getElementById('reject-form-{{ log.id }}').classList.toggle('d-none')">
+                            <i class="fas fa-times me-1"></i>Từ chối
+                        </button>
+                    </div>
+                    
+                    <!-- Hidden Reject Form -->
+                    <form id="reject-form-{{ log.id }}" method="post" action="{% url 'reject_log' log.id %}" class="mt-2 d-none">
+                        {% csrf_token %}
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="reason" class="form-control" placeholder="Lý do từ chối..." required>
+                            <button class="btn btn-danger" type="submit">Gửi</button>
+                        </div>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Recent Logs Section -->
 <div class="row">
     <div class="col-12">
@@ -58,7 +109,7 @@
                             <small class="text-muted">{{ log.duration|default:"--" }}h</small>
                         </div>
                         <p class="mb-1">
-                            <i class="fas fa-user me-2"></i>{{ log.operator_name }}
+                            <i class="fas fa-user me-2"></i>{{ log.get_operator_display_name }}
                         </p>
                         <small class="text-muted">
                             <i class="fas fa-clock me-1"></i>{{ log.start_time|date:"d/m/Y H:i" }}

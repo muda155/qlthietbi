@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 import io
 import qrcode
@@ -90,10 +91,27 @@ class OperationLog(models.Model):
         ('MAINTENANCE', 'Cần bảo dưỡng (C2)'),
         ('ERROR', 'Hỏng hóc/Sự cố')
     ]
+
+    # Approval Status Choices
+    STATUS_CHOICES = [
+        ('PENDING', 'Chờ duyệt'),
+        ('APPROVED', 'Đã duyệt'),
+        ('REJECTED', 'Từ chối')
+    ]
     
     device = models.ForeignKey(Device, on_delete = models.CASCADE, verbose_name = "Chọn thiết bị")
     device_unit = models.ForeignKey(DeviceUnit, on_delete = models.CASCADE, null=True, blank=True, verbose_name = "Khối chi tiết")
-    operator_name = models.CharField(max_length = 50, verbose_name = "Người thực hiện")
+    
+    # Auth & Tracking
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='logs_created', verbose_name="Người lập", null=True, blank=True)
+    operator_name = models.CharField(max_length = 50, verbose_name = "Người thực hiện (Legacy)", blank=True, null=True)
+    
+    # Approval fields
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', verbose_name="Trạng thái duyệt")
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='logs_verified', null=True, blank=True, verbose_name="Người duyệt")
+    verified_at = models.DateTimeField(null=True, blank=True, verbose_name="Thời gian duyệt")
+    rejection_reason = models.TextField(blank=True, verbose_name="Lý do từ chối")
+
     start_time = models.DateTimeField(verbose_name = "Thời gian bật")
     end_time = models.DateTimeField(verbose_name = "Thời gian tắt")
     duration = models.FloatField(blank = True, null = True, verbose_name = "Giờ hoạt động (h)")
@@ -107,23 +125,49 @@ class OperationLog(models.Model):
             # Only process if duration is positive
             if diff.total_seconds() > 0:
                 self.duration = round(diff.total_seconds() / 3600, 2)
-                self.device.total_system_hours += self.duration
-                self.device.save()
-                
-                # Update all units of this device with:
-                # 1. Add operation hours
-                # 2. Update status based on operator's report
-                if self.device.pk:
-                    units = self.device.units.all()
-                    for unit in units:
-                        # Add duration to each unit's current hours (for tracking)
-                        unit.current_hours += self.duration
-                        
-                        # Update unit status from operator's report
-                        unit.status = self.device_status
-                        
-                        unit.save()
+        
+        # NOTE: We NO LONGER update device hours here.
+        # That logic is moved to approve() method.
+        
         super().save(*args, **kwargs)
+
+    def approve(self, user):
+        """Approve the log and update device hours"""
+        if self.status == 'APPROVED':
+            return # Already approved
+            
+        self.status = 'APPROVED'
+        self.verified_by = user
+        self.verified_at = timezone.now()
+        
+        # UPDATE DEVICE HOURS AND STATUS
+        if self.duration and self.duration > 0:
+            self.device.total_system_hours += self.duration
+            self.device.save()
+            
+            # Update all units
+            if self.device.pk:
+                units = self.device.units.all()
+                for unit in units:
+                    unit.current_hours += self.duration
+                    unit.status = self.device_status
+                    unit.save()
+        
+        self.save()
+
+    def reject(self, user, reason):
+        """Reject the log"""
+        self.status = 'REJECTED'
+        self.verified_by = user
+        self.verified_at = timezone.now()
+        self.rejection_reason = reason
+        self.save()
+
+    def get_operator_display_name(self):
+        """Return the operator's full name if available, otherwise username"""
+        if self.created_by:
+            return self.created_by.get_full_name() or self.created_by.username
+        return self.operator_name or "Unknown"
     
     def __str__(self):
         return f"Log: {self.device.name} - {self.duration}h - {self.get_device_status_display()}"

@@ -20,6 +20,13 @@
                         <div class="d-flex w-100 justify-content-between align-items-start mb-2">
                             <h6 class="mb-0">
                                 <i class="fas fa-cogs me-2"></i>{{ log.device.name }}
+                                {% if log.status == 'PENDING' %}
+                                    <span class="badge bg-warning text-dark ms-2">Chờ duyệt</span>
+                                {% elif log.status == 'APPROVED' %}
+                                    <span class="badge bg-success ms-2">Đã duyệt</span>
+                                {% elif log.status == 'REJECTED' %}
+                                    <span class="badge bg-danger ms-2">Từ chối</span>
+                                {% endif %}
                             </h6>
                             <div class="text-end">
                                 {% if log.duration %}
@@ -33,7 +40,7 @@
                         <div class="row g-2 mt-2 mb-3">
                             <div class="col-6 col-md-3">
                                 <small class="text-muted d-block">Người vận hành</small>
-                                <p class="mb-0">{{ log.operator_name }}</p>
+                                <p class="mb-0">{{ log.get_operator_display_name }}</p>
                             </div>
                             <div class="col-6 col-md-3">
                                 <small class="text-muted d-block">Giờ nổ máy</small>

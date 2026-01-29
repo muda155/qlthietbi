@@ -76,10 +76,6 @@
                         <p class="mb-0 h5" style="color: var(--accent-primary);">{{ device_unit.current_hours }} h</p>
                     </div>
                     <div class="col-6 col-md-3 mb-3">
-                        <label class="form-label text-muted">Định mức bảo dưỡng</label>
-                        <p class="mb-0">{{ device_unit.maintenance_threshold }} h</p>
-                    </div>
-                    <div class="col-6 col-md-3 mb-3">
                         <label class="form-label text-muted">Trạng thái kỹ thuật</label>
                         <p class="mb-0">
                             {% if device_unit.status == 'NORMAL' %}

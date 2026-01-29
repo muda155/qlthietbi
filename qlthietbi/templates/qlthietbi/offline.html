@@ -142,14 +142,55 @@
             <p class="mb-0 mt-2">Khi kết nối được khôi phục, dữ liệu sẽ tự động được đồng bộ.</p>
         </div>
 
+        <!-- Offline Log Entry Form -->
+        <div class="text-start mt-4">
+            <button class="btn btn-outline-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#offlineForm" aria-expanded="false" aria-controls="offlineForm">
+                <i class="fas fa-pen-square me-2"></i>Ghi nhật ký khẩn cấp
+            </button>
+            <div class="collapse mt-3" id="offlineForm">
+                <div class="card card-body bg-dark border-secondary">
+                    <form id="offline-log-form">
+                        <div class="mb-3">
+                            <label class="form-label text-light">Mã QR Thiết bị</label>
+                            <input type="text" class="form-control" id="offline_qr" required placeholder="Nhập mã trên thiết bị">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-light">Người thực hiện</label>
+                            <input type="text" class="form-control" id="offline_operator" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-light">Giờ nổ máy</label>
+                            <input type="datetime-local" class="form-control" id="offline_start" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-light">Giờ tắt máy</label>
+                            <input type="datetime-local" class="form-control" id="offline_end" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-light">Trạng thái</label>
+                            <select class="form-select" id="offline_status">
+                                <option value="NORMAL">Hoạt động tốt (C1)</option>
+                                <option value="MAINTENANCE">Cần bảo dưỡng (C2)</option>
+                                <option value="ERROR">Hỏng hóc</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Lưu tạm</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Additional Info -->
-        <p>Bạn có thể xem các trang đã tải trước đó, nhưng sẽ không thể tải các trang mới.</p>
+        <p class="mt-4">Bạn có thể xem các trang đã tải trước đó, nhưng sẽ không thể tải các trang mới.</p>
 
         <!-- Retry Button -->
         <div class="retry-button">
             <button onclick="location.reload()">
                 <i class="fas fa-redo me-2"></i>Thử lại
             </button>
+            <a href="/" class="btn btn-outline-secondary mt-2 ms-2" style="min-height: 50px; line-height: 34px;">
+                <i class="fas fa-home me-2"></i>Về trang chủ
+            </a>
         </div>
 
         <!-- Help Text -->
@@ -161,5 +202,45 @@
 
     <!-- Bootstrap JS (optional) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Set default times
+        const now = new Date();
+        const isoString = now.toISOString().slice(0, 16);
+        document.getElementById('offline_start').value = isoString;
+        document.getElementById('offline_end').value = isoString;
+
+        // Auto-fill QR from URL param
+        const urlParams = new URLSearchParams(window.location.search);
+        const qrParam = urlParams.get('qr');
+        if (qrParam) {
+            document.getElementById('offline_qr').value = qrParam;
+            // Auto open the form
+            const bsCollapse = new bootstrap.Collapse(document.getElementById('offlineForm'), {
+                show: true
+            });
+        }
+
+        // Handle offline form submission
+        document.getElementById('offline-log-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const data = {
+                qr_code: document.getElementById('offline_qr').value.trim(),
+                operator_name: document.getElementById('offline_operator').value.trim(),
+                start_time: document.getElementById('offline_start').value,
+                end_time: document.getElementById('offline_end').value,
+                device_status: document.getElementById('offline_status').value,
+                notes: 'Ghi từ chế độ Offline',
+                timestamp: new Date().toISOString(),
+            };
+
+            localStorage.setItem('pending_log', JSON.stringify(data));
+            alert('Đã lưu dữ liệu vào máy! Sẽ đồng bộ khi có mạng.');
+            
+            // Redirect to home (which is likely cached)
+            window.location.href = '/';
+        });
+    </script>
 </body>
 </html>

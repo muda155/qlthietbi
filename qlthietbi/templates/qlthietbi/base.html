@@ -364,6 +364,28 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Top Navigation -->
+    <nav class="navbar navbar-dark bg-dark border-bottom border-secondary mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-ship me-2"></i>SKTS
+            </a>
+            <div class="d-flex align-items-center">
+                {% if user.is_authenticated %}
+                    <span class="text-light me-3 small">{{ user.username }}</span>
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-sm btn-primary">Đăng nhập</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
     <!-- Main Content -->
     <main>
         <div class="container-main">
@@ -424,6 +446,110 @@
                 );
             });
         }
+
+        // Global Offline Sync Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const STORAGE_KEY = 'pending_log';
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            async function syncPendingLogs() {
+                const pendingLog = localStorage.getItem(STORAGE_KEY);
+                if (!pendingLog) return;
+
+                if (!navigator.onLine) return;
+
+                try {
+                    const logData = JSON.parse(pendingLog);
+                    const qrCode = logData.qr_code;
+                    
+                    // Show syncing toast
+                    showGlobalToast('Đang đồng bộ dữ liệu...', 'info');
+
+                    const response = await fetch(`/api/ghi-nhat-ky/${qrCode}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify(logData)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        showGlobalToast('Đồng bộ dữ liệu thành công!', 'success');
+                    } else {
+                        showGlobalToast(`Lỗi đồng bộ: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Sync error:', error);
+                    // Don't delete local data if network error, try again later
+                }
+            }
+
+            function showGlobalToast(message, type = 'info') {
+                const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+                const toast = document.createElement('div');
+                toast.className = `toast show`;
+                toast.setAttribute('role', 'alert');
+                
+                const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+                
+                // Set icon based on type
+                let icon = 'info-circle';
+                if (type === 'success') icon = 'check-circle';
+                if (type === 'error') icon = 'exclamation-circle';
+
+                toast.innerHTML = `
+                    <div class="toast-header">
+                        <i class="fas fa-${icon} me-2"></i>
+                        <strong class="me-auto">Thông báo</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                `;
+                toastContainer.appendChild(toast);
+                
+                // Auto hide
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            function createToastContainer() {
+                const container = document.createElement('div');
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                container.style.zIndex = '1099';
+                document.body.appendChild(container);
+                return container;
+            }
+
+            // Sync when coming back online
+            window.addEventListener('online', syncPendingLogs);
+            
+            // Try to sync on load if online
+            if (navigator.onLine) {
+                syncPendingLogs();
+            }
+        });
     </script>
 
     {% block extra_js %}{% endblock %}

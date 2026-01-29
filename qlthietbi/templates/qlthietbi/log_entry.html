@@ -42,18 +42,18 @@
                     <h5 class="mb-0">Thông tin vận hành</h5>
                 </div>
                 <div class="card-body">
-                    <!-- Operator Name -->
+                    <!-- Operator Name (Auto-filled from logged-in user) -->
                     <div class="mb-3">
-                        <label for="operator_name" class="form-label">Người thực hiện <span class="text-danger">*</span></label>
+                        <label for="operator_name_display" class="form-label">Người thực hiện</label>
                         <input 
                             type="text" 
                             class="form-control" 
-                            id="operator_name" 
-                            name="operator_name"
-                            placeholder="Nhập tên người vận hành"
-                            required
+                            id="operator_name_display" 
+                            value="{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}"
+                            readonly
+                            style="background-color: rgba(65, 90, 119, 0.2); cursor: not-allowed;"
                         >
-                        <small class="form-text text-muted">Tên của người điều hành thiết bị</small>
+                        <small class="form-text text-muted">Tự động lấy từ tài khoản đăng nhập</small>
                     </div>
 
                     <!-- Start Time -->
@@ -196,7 +196,6 @@
     logForm.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        const operatorName = document.getElementById('operator_name').value.trim();
         const startTime = new Date(startTimeInput.value);
         const endTime = new Date(endTimeInput.value);
 
@@ -205,11 +204,6 @@
         errorMessage.textContent = '';
 
         // Validation checks
-        if (!operatorName) {
-            showError('Vui lòng nhập tên người thực hiện');
-            return;
-        }
-
         if (!startTimeInput.value) {
             showError('Vui lòng nhập giờ nổ máy');
             return;
@@ -245,7 +239,6 @@
     function saveFormToLocalStorage() {
         const formData = {
             qr_code: '{{ device_unit.qr_code }}',
-            operator_name: document.getElementById('operator_name').value,
             start_time: startTimeInput.value,
             end_time: endTimeInput.value,
             device_status: document.getElementById('device_status').value,
@@ -295,7 +288,6 @@
     logForm.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        const operatorName = document.getElementById('operator_name').value.trim();
         const startTime = new Date(startTimeInput.value);
         const endTime = new Date(endTimeInput.value);
 
@@ -304,11 +296,6 @@
         errorMessage.textContent = '';
 
         // Validation checks
-        if (!operatorName) {
-            showError('Vui lòng nhập tên người thực hiện');
-            return;
-        }
-
         if (!startTimeInput.value) {
             showError('Vui lòng nhập giờ nổ máy');
             return;
@@ -341,7 +328,6 @@
     });
 
     // Save data on input change (auto-save feature)
-    document.getElementById('operator_name').addEventListener('input', saveFormToLocalStorage);
     startTimeInput.addEventListener('change', saveFormToLocalStorage);
     endTimeInput.addEventListener('change', saveFormToLocalStorage);
     document.getElementById('device_status').addEventListener('change', saveFormToLocalStorage);
@@ -353,7 +339,6 @@
         if (saved) {
             try {
                 const data = JSON.parse(saved);
-                document.getElementById('operator_name').value = data.operator_name || '';
                 startTimeInput.value = data.start_time || '';
                 endTimeInput.value = data.end_time || '';
                 document.getElementById('device_status').value = data.device_status || 'NORMAL';
@@ -362,14 +347,6 @@
             } catch (e) {
                 console.log('Could not restore form data');
             }
-        }
-    });
-
-    // Listen for online event to sync pending data
-    window.addEventListener('online', function() {
-        const pending = localStorage.getItem(STORAGE_KEY);
-        if (pending) {
-            showToast('Kết nối được khôi phục. Dữ liệu sẽ được đồng bộ...', 'info');
         }
     });
 
