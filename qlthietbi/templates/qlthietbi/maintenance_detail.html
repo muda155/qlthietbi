@@ -1,0 +1,210 @@
+{% extends 'qlthietbi/base.html' %}
+
+{% block title %}Chi Tiết Lệnh Sửa Chữa - Sổ Kỹ Thuật Số{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <a href="{% url 'maintenance_list' %}" class="btn btn-sm btn-outline-secondary mb-3">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại danh sách
+        </a>
+        <h1 class="h3 mb-3">
+            <i class="fas fa-file-alt me-2"></i>Chi Tiết Lệnh Sửa Chữa #{{ order.id }}
+        </h1>
+    </div>
+</div>
+
+<!-- Order Status Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-{% if order.status == 'VERIFIED' %}success{% elif order.status == 'CANCELLED' %}secondary{% elif order.status == 'PENDING' %}warning{% else %}primary{% endif %}">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Trạng thái</h5>
+                    <div>
+                        <span class="badge 
+                            {% if order.status == 'PENDING' %}bg-warning text-dark
+                            {% elif order.status == 'APPROVED' %}bg-primary
+                            {% elif order.status == 'COMPLETED' %}bg-info
+                            {% elif order.status == 'VERIFIED' %}bg-success
+                            {% else %}bg-secondary{% endif %} me-1">
+                            {{ order.get_status_display }}
+                        </span>
+                        <span class="badge 
+                            {% if order.priority == 'CRITICAL' %}bg-danger
+                            {% elif order.priority == 'HIGH' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ order.get_priority_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Device Information -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-microchip me-2"></i>Thông tin thiết bị
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="text-muted">Hệ thống:</label>
+                        <p class="mb-0"><strong>{{ order.device_unit.device.name }}</strong></p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="text-muted">Khối:</label>
+                        <p class="mb-0"><strong>{{ order.device_unit.name }}</strong></p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="text-muted">Mã QR:</label>
+                        <p class="mb-0 font-monospace">{{ order.device_unit.qr_code }}</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="text-muted">Vị trí:</label>
+                        <p class="mb-0">{{ order.device_unit.location.name|default:"Không xác định" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Issue Description -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-circle me-2"></i>Thông tin sự cố
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted">Người báo cáo:</label>
+                    <p class="mb-0">
+                        <i class="fas fa-user me-1"></i>{{ order.reported_by.get_full_name|default:order.reported_by.username }}
+                    </p>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted">Thời gian báo cáo:</label>
+                    <p class="mb-0">
+                        <i class="fas fa-clock me-1"></i>{{ order.created_at|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted">Mô tả sự cố:</label>
+                    <p class="mb-0" style="white-space: pre-wrap;">{{ order.description }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assignment & Solution -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-wrench me-2"></i>Xử lý
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted">Người được giao:</label>
+                    <p class="mb-0">
+                        {% if order.assigned_to_user %}
+                            <i class="fas fa-user-check me-1 text-success"></i>{{ order.get_assigned_display_name }}
+                        {% elif order.assigned_to_name %}
+                            <i class="fas fa-user me-1"></i>{{ order.assigned_to_name }}
+                        {% else %}
+                            <span class="text-muted">Chưa phân công</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                {% if order.solution %}
+                <div class="mb-3">
+                    <label class="text-muted">Giải pháp đã thực hiện:</label>
+                    <p class="mb-0" style="white-space: pre-wrap;">{{ order.solution }}</p>
+                </div>
+                {% endif %}
+                
+                {% if order.completed_at %}
+                <div class="mb-3">
+                    <label class="text-muted">Thời gian hoàn thành:</label>
+                    <p class="mb-0">
+                        <i class="fas fa-check-circle me-1 text-success"></i>{{ order.completed_at|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex gap-2">
+            {% if is_commander %}
+                <a href="{% url 'update_maintenance' order.id %}" class="btn btn-warning btn-lg">
+                    <i class="fas fa-edit me-2"></i>Cập nhật
+                </a>
+            {% endif %}
+            
+            {% if can_complete %}
+                <button type="button" class="btn btn-success btn-lg" 
+                        onclick="document.getElementById('complete-form').classList.toggle('d-none')">
+                    <i class="fas fa-check-circle me-2"></i>Hoàn thành công việc
+                </button>
+            {% endif %}
+            
+            <a href="{% url 'device_detail' order.device_unit.qr_code %}" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-microchip me-2"></i>Xem thiết bị
+            </a>
+        </div>
+        
+        <!-- Hidden Complete Form -->
+        {% if can_complete %}
+        <form id="complete-form" method="post" action="{% url 'complete_maintenance' order.id %}" class="mt-4 d-none">
+            {% csrf_token %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Báo cáo hoàn thành</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="solution" class="form-label">
+                            Giải pháp đã thực hiện <span class="text-danger">*</span>
+                        </label>
+                        <textarea 
+                            class="form-control bg-dark text-light border-secondary" 
+                            id="solution" 
+                            name="solution" 
+                            rows="5" 
+                            required
+                            placeholder="Mô tả chi tiết công việc đã thực hiện, linh kiện đã thay thế, kết quả kiểm tra..."
+                        ></textarea>
+                    </div>
+                    <button class="btn btn-success" type="submit">
+                        <i class="fas fa-check-circle me-1"></i>Xác nhận hoàn thành
+                    </button>
+                    <button class="btn btn-secondary" type="button" 
+                            onclick="document.getElementById('complete-form').classList.add('d-none')">
+                        <i class="fas fa-times me-1"></i>Hủy
+                    </button>
+                </div>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

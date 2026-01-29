@@ -1,0 +1,195 @@
+{% extends 'qlthietbi/base.html' %}
+
+{% block title %}Cập Nhật Lệnh Sửa Chữa - Sổ Kỹ Thuật Số{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <a href="{% url 'maintenance_detail' order.id %}" class="btn btn-sm btn-outline-secondary mb-3">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+        <h1 class="h3 mb-3">
+            <i class="fas fa-edit me-2"></i>Cập Nhật Lệnh Sửa Chữa #{{ order.id }}
+        </h1>
+    </div>
+</div>
+
+<!-- Current Order Info (Read-only) -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Thông tin hiện tại
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <strong>Thiết bị:</strong> {{ order.device_unit.name }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Mã QR:</strong> {{ order.device_unit.qr_code }}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <strong>Người báo cáo:</strong> {{ order.reported_by.get_full_name|default:order.reported_by.username }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Thời gian:</strong> {{ order.created_at|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <strong>Sự cố:</strong>
+                    <p class="mb-0 text-muted">{{ order.description|truncatewords:50 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Form -->
+<div class="row">
+    <div class="col-12">
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Status & Priority -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Trạng thái & Ưu tiên</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">
+                                Trạng thái <span class="text-danger">*</span>
+                            </label>
+                            <select 
+                                class="form-select bg-dark text-light border-secondary" 
+                                id="status" 
+                                name="status" 
+                                required
+                            >
+                                <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Chờ duyệt</option>
+                                <option value="APPROVED" {% if order.status == 'APPROVED' %}selected{% endif %}>Đã duyệt</option>
+                                <option value="COMPLETED" {% if order.status == 'COMPLETED' %}selected{% endif %}>Đã hoàn thành</option>
+                                <option value="VERIFIED" {% if order.status == 'VERIFIED' %}selected{% endif %}>Đã nghiệm thu</option>
+                                <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Đã hủy</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Nghiệm thu: Thiết bị đã trở lại trạng thái bình thường
+                            </small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="priority" class="form-label">
+                                Mức độ ưu tiên <span class="text-danger">*</span>
+                            </label>
+                            <select 
+                                class="form-select bg-dark text-light border-secondary" 
+                                id="priority" 
+                                name="priority" 
+                                required
+                            >
+                                <option value="LOW" {% if order.priority == 'LOW' %}selected{% endif %}>Thấp</option>
+                                <option value="HIGH" {% if order.priority == 'HIGH' %}selected{% endif %}>Cao</option>
+                                <option value="CRITICAL" {% if order.priority == 'CRITICAL' %}selected{% endif %}>Khẩn cấp</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Assignment -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Phân công</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="assigned_to_user" class="form-label">
+                            Giao cho (Chọn user)
+                        </label>
+                        <select 
+                            class="form-select bg-dark text-light border-secondary" 
+                            id="assigned_to_user" 
+                            name="assigned_to_user"
+                        >
+                            <option value="">-- Không chọn --</option>
+                            {% for user in users %}
+                                <option value="{{ user.id }}" 
+                                    {% if order.assigned_to_user.id == user.id %}selected{% endif %}>
+                                    {{ user.get_full_name|default:user.username }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">
+                            Chọn user nếu người đó có tài khoản trong hệ thống
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="assigned_to_name" class="form-label">
+                            Giao cho (Nhập tên)
+                        </label>
+                        <input 
+                            type="text" 
+                            class="form-control bg-dark text-light border-secondary"
+                            id="assigned_to_name"
+                            name="assigned_to_name"
+                            value="{{ order.assigned_to_name }}"
+                            placeholder="Nhập tên người được giao (nếu không có tài khoản)"
+                        >
+                        <small class="form-text text-muted">
+                            Dùng trường này nếu người thực hiện không có tài khoản
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Solution -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Giải pháp & Kết quả</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="solution" class="form-label">
+                            Giải pháp sửa chữa
+                        </label>
+                        <textarea 
+                            class="form-control bg-dark text-light border-secondary" 
+                            id="solution" 
+                            name="solution" 
+                            rows="6"
+                            placeholder="Mô tả chi tiết công việc đã thực hiện, linh kiện đã thay thế, kết quả kiểm tra..."
+                        >{{ order.solution }}</textarea>
+                    </div>
+                    
+                    {% if order.completed_at %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Đã hoàn thành:</strong> {{ order.completed_at|date:"d/m/Y H:i" }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Submit Buttons -->
+            <div class="row">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-warning btn-lg w-100 mb-2">
+                        <i class="fas fa-save me-2"></i>Cập nhật
+                    </button>
+                    <a href="{% url 'maintenance_detail' order.id %}" class="btn btn-secondary w-100">
+                        <i class="fas fa-times me-2"></i>Hủy
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'qlthietbi/base.html' %}
+
+{% block title %}Báo Hỏng / Sửa Chữa - Sổ Kỹ Thuật Số{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <a href="{% url 'device_detail' device_unit.qr_code %}" class="btn btn-sm btn-outline-secondary mb-3">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+        <h1 class="h3 mb-3">
+            <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Báo Hỏng / Yêu Cầu Sửa Chữa
+        </h1>
+    </div>
+</div>
+
+<!-- Device Information -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-microchip me-2"></i>Thiết bị
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-1">
+                    <strong>{{ device.name }}</strong> - {{ device_unit.name }}
+                </p>
+                <small class="text-muted">{{ device_unit.qr_code }}</small>
+                <p class="mt-2 mb-0">
+                    <span class="badge 
+                        {% if device_unit.status == 'NORMAL' %}bg-success
+                        {% elif device_unit.status == 'MAINTENANCE' %}bg-warning text-dark
+                        {% else %}bg-danger{% endif %}">
+                        {{ device_unit.get_status_display }}
+                    </span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Maintenance Form -->
+<div class="row">
+    <div class="col-12">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin sự cố</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Reporter (Auto-filled from logged-in user) -->
+                    <div class="mb-3">
+                        <label for="reporter_display" class="form-label">Người báo cáo</label>
+                        <input 
+                            type="text" 
+                            class="form-control bg-dark text-light border-secondary"
+                            id="reporter_display"
+                            value="{{ request.user.get_full_name|default:request.user.username }}"
+                            disabled
+                        >
+                        <small class="form-text text-muted">Tự động điền từ tài khoản đăng nhập</small>
+                    </div>
+                    
+                    <!-- Priority -->
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">
+                            Mức độ ưu tiên <span class="text-danger">*</span>
+                        </label>
+                        <select 
+                            class="form-select bg-dark text-light border-secondary" 
+                            id="priority" 
+                            name="priority" 
+                            required
+                        >
+                            <option value="LOW">Thấp</option>
+                            <option value="HIGH" selected>Cao</option>
+                            <option value="CRITICAL">Khẩn cấp</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Khẩn cấp: Thiết bị hoàn toàn không hoạt động được
+                        </small>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="description" class="form-label">
+                            Mô tả sự cố <span class="text-danger">*</span>
+                        </label>
+                        <textarea 
+                            class="form-control bg-dark text-light border-secondary" 
+                            id="description" 
+                            name="description" 
+                            rows="6" 
+                            required
+                            placeholder="Mô tả chi tiết tình trạng hỏng hóc, triệu chứng, thời điểm phát hiện..."
+                        ></textarea>
+                        <small class="form-text text-muted">
+                            Mô tả càng chi tiết càng giúp công tác sửa chữa nhanh chóng
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Submit Buttons -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-danger btn-lg w-100 mb-2">
+                        <i class="fas fa-paper-plane me-2"></i>Gửi yêu cầu sửa chữa
+                    </button>
+                    <a href="{% url 'device_detail' device_unit.qr_code %}" class="btn btn-secondary w-100">
+                        <i class="fas fa-times me-2"></i>Hủy
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

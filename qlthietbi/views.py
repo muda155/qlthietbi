@@ -4,9 +4,10 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseForbidden
 from django.utils import timezone
+from django.db.models import Q
 import json
 from datetime import datetime
-from .models import Device, DeviceUnit, OperationLog, Location
+from .models import Device, DeviceUnit, OperationLog, Location, MaintenanceOrder
 
 def is_commander(user):
     return user.groups.filter(name='Commanders').exists() or user.is_superuser
@@ -57,10 +58,17 @@ def device_detail(request, qr_code):
     device = device_unit.device
     all_units = device.units.all()
     
+    # Get active maintenance orders for this device_unit
+    active_maintenance_orders = device_unit.maintenance_orders.exclude(
+        status__in=['VERIFIED', 'CANCELLED']
+    ).order_by('-created_at')
+    
     context = {
         'device': device,
         'device_unit': device_unit,
         'all_units': all_units,
+        'active_maintenance_orders': active_maintenance_orders,
+        'is_commander': is_commander(request.user),
     }
     return render(request, 'qlthietbi/device_detail.html', context)
 
@@ -245,3 +253,161 @@ def api_log_entry(request, qr_code):
             {'success': False, 'message': f'Lỗi: {str(e)}'},
             status=500
         )
+
+# ========== MAINTENANCE VIEWS ==========
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def create_maintenance_order(request, qr_code):
+    """Create maintenance order (Commanders only)"""
+    if not is_commander(request.user):
+        return HttpResponseForbidden("Chỉ Trưởng ngành mới có quyền tạo lệnh bảo dưỡng")
+    
+    device_unit = get_object_or_404(DeviceUnit, qr_code=qr_code)
+    
+    if request.method == 'POST':
+        description = request.POST.get('description', '').strip()
+        priority = request.POST.get('priority', 'LOW')
+        
+        if not description:
+            messages.error(request, 'Vui lòng nhập mô tả sự cố')
+            return redirect('create_maintenance', qr_code=qr_code)
+        
+        try:
+            order = MaintenanceOrder(
+                device_unit=device_unit,
+                reported_by=request.user,
+                description=description,
+                priority=priority,
+                status='PENDING'
+            )
+            order.save()
+            messages.success(request, 'Đã tạo lệnh bảo dưỡng/sửa chữa')
+            return redirect('device_detail', qr_code=qr_code)
+        except Exception as e:
+            messages.error(request, f'Lỗi: {str(e)}')
+            return redirect('create_maintenance', qr_code=qr_code)
+    
+    context = {
+        'device_unit': device_unit,
+        'device': device_unit.device,
+    }
+    return render(request, 'qlthietbi/maintenance_form.html', context)
+
+@login_required
+@require_http_methods(["GET"])
+def maintenance_list(request):
+    """List maintenance orders based on user role"""
+    status_filter = request.GET.get('status', '')
+    
+    if is_commander(request.user):
+        # Commanders see all orders
+        orders = MaintenanceOrder.objects.all()
+    else:
+        # Workers see only orders assigned to them
+        orders = MaintenanceOrder.objects.filter(assigned_to_user=request.user)
+    
+    # Apply status filter if provided
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+    
+    # Order by status priority (PENDING first) then by date
+    status_order = {
+        'PENDING': 1,
+        'APPROVED': 2,
+        'COMPLETED': 3,
+        'VERIFIED': 4,
+        'CANCELLED': 5
+    }
+    orders = sorted(orders, key=lambda x: (status_order.get(x.status, 999), -x.created_at.timestamp()))
+    
+    context = {
+        'orders': orders,
+        'status_filter': status_filter,
+        'is_commander': is_commander(request.user),
+    }
+    return render(request, 'qlthietbi/maintenance_list.html', context)
+
+@login_required
+@require_http_methods(["GET"])
+def maintenance_detail(request, order_id):
+    """View maintenance order details"""
+    order = get_object_or_404(MaintenanceOrder, id=order_id)
+    
+    # Check permission: Commander or assigned worker
+    if not is_commander(request.user) and order.assigned_to_user != request.user:
+        return HttpResponseForbidden("Bạn không có quyền xem lệnh này")
+    
+    context = {
+        'order': order,
+        'is_commander': is_commander(request.user),
+        'can_complete': order.assigned_to_user == request.user and order.status == 'APPROVED',
+    }
+    return render(request, 'qlthietbi/maintenance_detail.html', context)
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def update_maintenance_order(request, order_id):
+    """Update maintenance order (Commanders only)"""
+    if not is_commander(request.user):
+        return HttpResponseForbidden("Chỉ Trưởng ngành mới có quyền cập nhật lệnh")
+    
+    order = get_object_or_404(MaintenanceOrder, id=order_id)
+    
+    if request.method == 'POST':
+        try:
+            order.status = request.POST.get('status', order.status)
+            order.priority = request.POST.get('priority', order.priority)
+            
+            # Assignment
+            assigned_user_id = request.POST.get('assigned_to_user', '')
+            if assigned_user_id:
+                from django.contrib.auth.models import User
+                order.assigned_to_user = User.objects.get(id=assigned_user_id)
+            else:
+                order.assigned_to_user = None
+            
+            order.assigned_to_name = request.POST.get('assigned_to_name', '').strip()
+            order.solution = request.POST.get('solution', '').strip()
+            
+            order.save()
+            messages.success(request, 'Đã cập nhật lệnh bảo dưỡng')
+            return redirect('maintenance_list')
+        except Exception as e:
+            messages.error(request, f'Lỗi: {str(e)}')
+            return redirect('update_maintenance', order_id=order_id)
+    
+    # Get all users for assignment dropdown
+    from django.contrib.auth.models import User
+    users = User.objects.filter(is_active=True).order_by('username')
+    
+    context = {
+        'order': order,
+        'users': users,
+    }
+    return render(request, 'qlthietbi/maintenance_update.html', context)
+
+@login_required
+@require_http_methods(["POST"])
+def complete_maintenance_order(request, order_id):
+    """Mark maintenance order as completed (Assigned workers only)"""
+    order = get_object_or_404(MaintenanceOrder, id=order_id)
+    
+    # Check permission: Must be assigned worker and status must be APPROVED
+    if order.assigned_to_user != request.user:
+        return HttpResponseForbidden("Bạn không được giao công việc này")
+    
+    if order.status != 'APPROVED':
+        messages.error(request, 'Chỉ có thể hoàn thành lệnh đã được duyệt')
+        return redirect('maintenance_detail', order_id=order_id)
+    
+    try:
+        order.solution = request.POST.get('solution', '').strip()
+        order.status = 'COMPLETED'
+        order.completed_at = timezone.now()
+        order.save()
+        messages.success(request, 'Đã đánh dấu hoàn thành công việc')
+        return redirect('maintenance_list')
+    except Exception as e:
+        messages.error(request, f'Lỗi: {str(e)}')
+        return redirect('maintenance_detail', order_id=order_id)

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Department, Location, Device, DeviceUnit, OperationLog
+from .models import Department, Location, Device, DeviceUnit, OperationLog, MaintenanceOrder
 
 # Register your models here.
 class DeviceUnitInline(admin.TabularInline):
@@ -67,8 +67,30 @@ class OperationLogAdmin(admin.ModelAdmin):
         }),
     )
 
+class MaintenanceOrderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'device_unit', 'priority', 'status', 'reported_by', 'get_assigned_display_name', 'created_at')
+    list_filter = ('status', 'priority', 'created_at')
+    search_fields = ('device_unit__name', 'device_unit__qr_code', 'reported_by__username', 'assigned_to_name', 'description')
+    readonly_fields = ('created_at', 'completed_at')
+    fieldsets = (
+        ('Thông tin thiết bị', {
+            'fields': ('device_unit',)
+        }),
+        ('Thông tin sự cố', {
+            'fields': ('reported_by', 'created_at', 'description', 'priority')
+        }),
+        ('Phân công & Xử lý', {
+            'fields': ('status', 'assigned_to_user', 'assigned_to_name', 'solution', 'completed_at')
+        }),
+    )
+    
+    def get_assigned_display_name(self, obj):
+        return obj.get_assigned_display_name()
+    get_assigned_display_name.short_description = "Người được giao"
+
 admin.site.register(Department, DepartmentAdmin)
 admin.site.register(Location, LocationAdmin)
 admin.site.register(Device, DeviceAdmin)
 admin.site.register(DeviceUnit, DeviceUnitAdmin)
 admin.site.register(OperationLog, OperationLogAdmin)
+admin.site.register(MaintenanceOrder, MaintenanceOrderAdmin)
