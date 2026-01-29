@@ -55,3 +55,6 @@ run_https.sh
 # Temporary/seed files
 temp.py
 seed_data.py
+
+# Test files (keep local only)
+qlthietbi/tests/
