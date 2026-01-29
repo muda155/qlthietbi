@@ -51,3 +51,7 @@ db.sqlite3-journal
 cert.crt
 cert.key
 run_https.sh
+
+# Temporary/seed files
+temp.py
+seed_data.py
