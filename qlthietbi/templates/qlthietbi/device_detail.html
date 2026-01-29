@@ -102,8 +102,7 @@
     </div>
 </div>
 
-<!-- Maintenance Button (Commanders Only) -->
-{% if is_commander %}
+<!-- Maintenance Button (All logged-in users can report errors) -->
 <div class="row mb-4">
     <div class="col-12">
         <a href="{% url 'create_maintenance' device_unit.qr_code %}" class="btn btn-danger btn-lg w-100">
@@ -111,7 +110,6 @@
         </a>
     </div>
 </div>
-{% endif %}
 
 <!-- Active Maintenance Orders -->
 {% if active_maintenance_orders %}

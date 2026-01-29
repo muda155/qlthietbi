@@ -259,10 +259,7 @@ def api_log_entry(request, qr_code):
 @login_required
 @require_http_methods(["GET", "POST"])
 def create_maintenance_order(request, qr_code):
-    """Create maintenance order (Commanders only)"""
-    if not is_commander(request.user):
-        return HttpResponseForbidden("Chỉ Trưởng ngành mới có quyền tạo lệnh bảo dưỡng")
-    
+    """Create maintenance order (All users can report errors)"""
     device_unit = get_object_or_404(DeviceUnit, qr_code=qr_code)
     
     if request.method == 'POST':
